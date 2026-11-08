@@ -1,0 +1,44 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build installer and portable exe
+        run: npm run dist:win
+
+      - name: Publish release with downloads
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          NOTES="Windows downloads. **Setup** installs the app; **Portable** runs without installing. Windows may say 'Windows protected your PC' because the app isn't signed: click More info, then Run anyway."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.exe --clobber
+          else
+            gh release create "$TAG" dist/*.exe --title "Glass Notes $VERSION" --notes "$NOTES"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glass-notes-windows
+          path: dist/*.exe

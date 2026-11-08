@@ -38,3 +38,6 @@ npm install
 npm start            # run the app
 npm run dist:win     # build Windows installer + portable exe into dist/
 ```
+
+## Download
+Get the latest Windows build from the [Releases page](../../releases/latest). Every push to `main` rebuilds it automatically (see `.github/workflows/build-windows.yml`).
