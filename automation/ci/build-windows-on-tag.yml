@@ -1,0 +1,51 @@
+# Replacement for .github/workflows/build-windows.yml.
+# Builds and publishes a release only when you push a version tag (made by automation/release.py),
+# and only if the smoke test passes first. Main-branch pushes no longer overwrite the current release.
+# To turn on: replace .github/workflows/build-windows.yml with this file.
+name: Build Windows app
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm i --no-save playwright
+      - run: xvfb-run -a node automation/smoke-test.js
+
+  build:
+    needs: smoke-test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build installer and portable exe
+        run: npm run dist:win
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          NOTES=$(awk -v v="## ${TAG#v} " 'index($0,v)==1{f=1;next} /^## /{f=0} f' CHANGELOG.md 2>/dev/null)
+          [ -z "$NOTES" ] && NOTES="Windows build of $TAG."
+          NOTES="$NOTES
+
+          **Setup** installs the app; **Portable** runs without installing. If Windows says 'Windows protected your PC', click More info, then Run anyway."
+          gh release create "$TAG" dist/*.exe --title "Glass Notes ${TAG#v}" --notes "$NOTES"

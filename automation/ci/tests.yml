@@ -1,0 +1,40 @@
+# Runs the automation unit tests and the end-to-end app smoke test on every push and pull request.
+# To turn on: move this file to .github/workflows/tests.yml
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Unit tests (backup, Markdown, review, release tools)
+        run: python -m unittest discover automation/tests -v
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm i --no-save playwright
+
+      - name: App smoke test
+        run: xvfb-run -a node automation/smoke-test.js
+
+      - name: Keep screenshots of failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-failures
+          path: automation/smoke-output/

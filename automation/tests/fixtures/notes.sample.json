@@ -1,0 +1,331 @@
+{
+ "version": 1,
+ "pages": {
+  "mw78upey1bjulnd": {
+   "id": "mw78upey1bjulnd",
+   "parentId": null,
+   "children": [
+    "mw78upeylz9gpa",
+    "mw78upeyvdgz72"
+   ],
+   "favorite": true,
+   "trashed": false,
+   "createdAt": 1794106777642,
+   "updatedAt": 1794106777642,
+   "font": "sans",
+   "wide": false,
+   "title": "Welcome to Glass Notes",
+   "icon": "✨",
+   "cover": "aurora",
+   "blocks": [
+    {
+     "id": "mw78upeywka580",
+     "type": "p",
+     "html": "A calm place for notes, plans and ideas. Everything is saved on this computer automatically — there is no account and nothing leaves your machine unless you share it."
+    },
+    {
+     "id": "mw78upeyxkkxkp",
+     "type": "callout",
+     "html": "Click anywhere below and start typing. Press <b>/</b> on an empty line to add headings, to-dos, quotes, code, images and more.",
+     "emoji": "👋"
+    },
+    {
+     "id": "mw78upeyy6343i",
+     "type": "h2",
+     "html": "The basics"
+    },
+    {
+     "id": "mw78upeyzcmz6t",
+     "type": "todo",
+     "html": "Hover the title to <b>add an icon or cover</b>"
+    },
+    {
+     "id": "mw78upey10da37o",
+     "type": "todo",
+     "html": "Drag the <b>⋮⋮</b> handle on the left of a block to move it"
+    },
+    {
+     "id": "mw78upey11raaas",
+     "type": "todo",
+     "html": "Create a page inside this one with <b>+</b> next to it in the sidebar"
+    },
+    {
+     "id": "mw78upey12ovb9x",
+     "type": "todo",
+     "html": "Star a page to pin it under <b>Favorites</b>"
+    },
+    {
+     "id": "mw78upey136yaui",
+     "type": "h2",
+     "html": "Sharing a page"
+    },
+    {
+     "id": "mw78upey14v20kb",
+     "type": "p",
+     "html": "Press <b>Share</b> in the top-right corner:"
+    },
+    {
+     "id": "mw78upey15mtq2e",
+     "type": "bullet",
+     "html": "<b>Web page</b> — a single .html file anyone can open in a browser. Images and fonts are included."
+    },
+    {
+     "id": "mw78upey16nq7rz",
+     "type": "bullet",
+     "html": "<b>PDF</b> — a clean, print-ready document."
+    },
+    {
+     "id": "mw78upey17ft15g",
+     "type": "h2",
+     "html": "Where things live"
+    },
+    {
+     "id": "mw78upey180oqbi",
+     "type": "p",
+     "html": "Your notes are stored in one file on this computer. Open <b>Settings</b> to see where, and to back it up."
+    },
+    {
+     "id": "mw78upey19mm7q4",
+     "type": "divider",
+     "html": ""
+    },
+    {
+     "id": "mw78upey1a7kbod",
+     "type": "p",
+     "html": "Explore the pages tucked inside this one ↓"
+    }
+   ]
+  },
+  "mw78upeylz9gpa": {
+   "id": "mw78upeylz9gpa",
+   "parentId": "mw78upey1bjulnd",
+   "children": [],
+   "favorite": false,
+   "trashed": false,
+   "createdAt": 1794106777642,
+   "updatedAt": 1794106777642,
+   "font": "sans",
+   "wide": false,
+   "title": "Keyboard shortcuts",
+   "icon": "⌨️",
+   "cover": "ink",
+   "blocks": [
+    {
+     "id": "mw78upey0ig1dz",
+     "type": "p",
+     "html": "Everything you can do with the mouse also has a shortcut."
+    },
+    {
+     "id": "mw78upey1ehrdc",
+     "type": "h2",
+     "html": "Anywhere"
+    },
+    {
+     "id": "mw78upey2l6kod",
+     "type": "bullet",
+     "html": "<code>Ctrl K</code> — search pages and commands"
+    },
+    {
+     "id": "mw78upey3ijvbq",
+     "type": "bullet",
+     "html": "<code>Ctrl N</code> — new page"
+    },
+    {
+     "id": "mw78upey4q932e",
+     "type": "bullet",
+     "html": "<code>Ctrl \\</code> — show or hide the sidebar"
+    },
+    {
+     "id": "mw78upey5f99c4",
+     "type": "bullet",
+     "html": "<code>Ctrl Shift E</code> — export the page"
+    },
+    {
+     "id": "mw78upey66mtqw",
+     "type": "h2",
+     "html": "While writing"
+    },
+    {
+     "id": "mw78upey78q9g9",
+     "type": "bullet",
+     "html": "<code>/</code> — insert a block (heading, to-do, quote, code…)"
+    },
+    {
+     "id": "mw78upey8r8del",
+     "type": "bullet",
+     "html": "<code>Ctrl B</code>, <code>Ctrl I</code>, <code>Ctrl U</code> — bold, italic, underline"
+    },
+    {
+     "id": "mw78upey9fy48i",
+     "type": "bullet",
+     "html": "<code>Ctrl E</code> — inline code, <code>Ctrl Shift H</code> — highlight"
+    },
+    {
+     "id": "mw78upeyauyej1",
+     "type": "bullet",
+     "html": "<code>Ctrl K</code> with text selected — add a link"
+    },
+    {
+     "id": "mw78upeyb2wzbz",
+     "type": "bullet",
+     "html": "<code>Tab</code> / <code>Shift Tab</code> — indent or outdent list items"
+    },
+    {
+     "id": "mw78upeyc1retf",
+     "type": "bullet",
+     "html": "<code>Ctrl Shift ↑ / ↓</code> — move the current block"
+    },
+    {
+     "id": "mw78upeydjcavi",
+     "type": "bullet",
+     "html": "<code>Ctrl D</code> — duplicate the current block"
+    },
+    {
+     "id": "mw78upeye54isg",
+     "type": "bullet",
+     "html": "<code>Ctrl Enter</code> — tick a to-do"
+    },
+    {
+     "id": "mw78upeyf0u8rj",
+     "type": "h2",
+     "html": "Markdown shortcuts"
+    },
+    {
+     "id": "mw78upeygbgval",
+     "type": "p",
+     "html": "Type these at the start of an empty line, followed by a space:"
+    },
+    {
+     "id": "mw78upeyha6wfb",
+     "type": "bullet",
+     "html": "<code>#</code> <code>##</code> <code>###</code> — headings"
+    },
+    {
+     "id": "mw78upeyimxbzk",
+     "type": "bullet",
+     "html": "<code>-</code> or <code>*</code> — bullet list,  <code>1.</code> — numbered list"
+    },
+    {
+     "id": "mw78upeyj0jh71",
+     "type": "bullet",
+     "html": "<code>[]</code> — to-do,  <code>&gt;</code> — quote,  <code>!</code> — callout"
+    },
+    {
+     "id": "mw78upeykjldkp",
+     "type": "bullet",
+     "html": "<code>```</code> — code block,  <code>---</code> — divider"
+    }
+   ]
+  },
+  "mw78upeyvdgz72": {
+   "id": "mw78upeyvdgz72",
+   "parentId": "mw78upey1bjulnd",
+   "children": [],
+   "favorite": false,
+   "trashed": false,
+   "createdAt": 1794106777642,
+   "updatedAt": 1794106777642,
+   "font": "sans",
+   "wide": false,
+   "title": "A tidy week",
+   "icon": "🌿",
+   "cover": "mint",
+   "blocks": [
+    {
+     "id": "mw78upeym92bit",
+     "type": "callout",
+     "html": "This is an example page. Tick things off, edit anything, or delete it from the sidebar.",
+     "emoji": "🌱"
+    },
+    {
+     "id": "mw78upeynfwom2",
+     "type": "h2",
+     "html": "Priorities"
+    },
+    {
+     "id": "mw78upeyoi925s",
+     "type": "todo",
+     "html": "Try the <b>/</b> menu on an empty line",
+     "checked": true
+    },
+    {
+     "id": "mw78upeypbubpi",
+     "type": "todo",
+     "html": "Give this page a new cover"
+    },
+    {
+     "id": "mw78upeyqttrpc",
+     "type": "todo",
+     "html": "Export a page as PDF from <b>Share</b>"
+    },
+    {
+     "id": "mw78upeyrwxnhs",
+     "type": "h2",
+     "html": "Notes"
+    },
+    {
+     "id": "mw78upeys52er9",
+     "type": "p",
+     "html": "Select any text to <mark class=\"hl-violet\">highlight</mark>, make it <b>bold</b>, <i>italic</i> or turn it into a link."
+    },
+    {
+     "id": "mw78upeytyzyhk",
+     "type": "quote",
+     "html": "Small, steady steps beat occasional heroics."
+    },
+    {
+     "id": "mw78upeyufxy0h",
+     "type": "code",
+     "html": "const plan = [\"write\", \"rest\", \"repeat\"];"
+    }
+   ]
+  },
+  "mw78ust21dqgyjt": {
+   "id": "mw78ust21dqgyjt",
+   "parentId": null,
+   "children": [],
+   "favorite": false,
+   "trashed": false,
+   "createdAt": 1794106782038,
+   "updatedAt": 1794106783172,
+   "font": "sans",
+   "wide": false,
+   "title": "Scratch page",
+   "icon": "",
+   "cover": null,
+   "blocks": [
+    {
+     "id": "mw78ust21c1gx1a",
+     "type": "code",
+     "html": "a\nb"
+    },
+    {
+     "id": "mw78uto51ed4gel",
+     "type": "h2",
+     "html": "Pasted heading"
+    },
+    {
+     "id": "mw78utoi1gdtj4y",
+     "type": "bullet",
+     "html": "item"
+    }
+   ]
+  }
+ },
+ "root": [
+  "mw78upey1bjulnd",
+  "mw78ust21dqgyjt"
+ ],
+ "recent": [
+  "mw78ust21dqgyjt",
+  "mw78upeyvdgz72",
+  "mw78upey1bjulnd"
+ ],
+ "settings": {
+  "sidebar": true,
+  "motion": true,
+  "expanded": {
+   "mw78upey1bjulnd": true
+  }
+ }
+}
