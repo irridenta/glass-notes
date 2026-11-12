@@ -102,6 +102,12 @@ class MarkdownTests(TempDirCase):
         self.assertIn("==highlight==", text)
         self.assertIn("```\nconst plan", text)
 
+    def test_locked_page_exports_placeholder_only(self):
+        page = {"id": "x", "title": "Diary", "locked": {"v": 1}, "blocks": []}
+        md = notes_lib.page_to_markdown(page)
+        self.assertIn("# Diary", md)
+        self.assertIn("password-protected", md)
+
     def test_round_trip_keeps_structure(self):
         db = notes_lib.load_db(self.notes)
         original = next(p for p in db["pages"].values() if p["title"] == "A tidy week")
@@ -213,6 +219,17 @@ class DigestTests(TempDirCase):
         client = FakeClient(stop_reason="refusal", text="")
         with self.assertRaises(SystemExit):
             quiet(notes_digest.main, ["--notes", str(self.notes), "--out", str(self.tmp / "r.md"), "--now", self.now_after_fixture()], client=client)
+
+    def test_locked_pages_are_never_sent(self):
+        db = json.loads(self.notes.read_text())
+        for p in db["pages"].values():
+            if p["title"] == "A tidy week":
+                p["locked"] = {"v": 1, "data": "AAAA", "iv": "AAAA", "salt": "AAAA"}
+                p["blocks"] = []
+        self.notes.write_text(json.dumps(db))
+        client = FakeClient()
+        quiet(notes_digest.main, ["--notes", str(self.notes), "--out", str(self.tmp / "r.md"), "--now", self.now_after_fixture()], client=client)
+        self.assertNotIn("A tidy week", client.calls[0]["messages"][0]["content"])
 
     def test_trashed_pages_are_excluded(self):
         db = json.loads(self.notes.read_text())

@@ -51,6 +51,8 @@
     grip: '<svg viewBox="0 0 20 20"><circle cx="7.5" cy="5.5" r="1.1" class="fill"/><circle cx="12.5" cy="5.5" r="1.1" class="fill"/><circle cx="7.5" cy="10" r="1.1" class="fill"/><circle cx="12.5" cy="10" r="1.1" class="fill"/><circle cx="7.5" cy="14.5" r="1.1" class="fill"/><circle cx="12.5" cy="14.5" r="1.1" class="fill"/></svg>',
     check: '<svg viewBox="0 0 20 20"><path d="m5 10.5 3.2 3L15 6.5"/></svg>',
     smile: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5"/><path d="M7.3 11.8c.7.9 1.6 1.4 2.7 1.4s2-.5 2.7-1.4"/><circle cx="7.8" cy="8.4" r=".9" class="fill"/><circle cx="12.2" cy="8.4" r=".9" class="fill"/></svg>',
+    lock: '<svg viewBox="0 0 20 20"><rect x="4.5" y="9" width="11" height="8" rx="2"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/><circle cx="10" cy="13" r=".9" class="fill"/></svg>',
+    unlock: '<svg viewBox="0 0 20 20"><rect x="4.5" y="9" width="11" height="8" rx="2"/><path d="M7 9V6.5a3 3 0 0 1 5.8-1.1"/><circle cx="10" cy="13" r=".9" class="fill"/></svg>',
     folder: '<svg viewBox="0 0 20 20"><path d="M3.5 6.5a1.5 1.5 0 0 1 1.5-1.5h3l1.5 1.5H15a1.5 1.5 0 0 1 1.5 1.5v6.5A1.5 1.5 0 0 1 15 16H5a1.5 1.5 0 0 1-1.5-1.5z"/></svg>',
   };
 

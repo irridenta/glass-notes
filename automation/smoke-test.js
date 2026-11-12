@@ -132,6 +132,43 @@ const blocksOf = (title) => win.evaluate((t) => {
     expect(pdf.slice(0, 5).toString() === '%PDF-' && pdf.length > 10000, 'PDF export is missing or empty');
   });
 
+  await step('password lock: encrypted on disk, wrong password refused, unlocks', async () => {
+    await win.evaluate(() => {
+      const p = Object.values(window.__gn.db.pages).find((x) => x.title === 'Smoke page');
+      window.__gn.openPage(p.id);
+    });
+    await win.locator('#moreBtn').click();
+    await win.locator('.pop-item', { hasText: 'Add password' }).click();
+    const f = win.locator('.lock-dialog input');
+    await f.nth(0).fill('correct horse');
+    await f.nth(1).fill('correct horse');
+    await f.nth(2).fill('a comic');
+    await win.locator('.lock-dialog .primary-btn').click();
+    await win.locator('#lockBtn').waitFor({ state: 'visible' });
+    // Still open: keep editing, then lock.
+    await win.locator('.add-below').click();
+    await win.keyboard.type('Secret added after locking');
+    await win.locator('#lockBtn').click();
+    await win.locator('.lock-card').waitFor();
+    await win.waitForTimeout(600);
+    for (const file of ['notes.json', 'notes.backup.json']) {
+      const p = path.join(DATA, file);
+      if (!fs.existsSync(p)) continue;
+      const disk = fs.readFileSync(p, 'utf8');
+      expect(!disk.includes('Quoted words') && !disk.includes('Secret added'), `readable text found in ${file}`);
+    }
+    expect(fs.readFileSync(path.join(DATA, 'notes.json'), 'utf8').includes('"kdf":"PBKDF2-SHA256"'), 'no encrypted copy saved');
+    await win.locator('.lock-card input').fill('wrong password');
+    await win.keyboard.press('Enter');
+    await win.locator('.lock-error', { hasText: 'Wrong password' }).waitFor({ timeout: 5000 });
+    expect(await win.locator('.block.quote').count() === 0, 'content shown after a wrong password');
+    await win.locator('.lock-card input').fill('correct horse');
+    await win.keyboard.press('Enter');
+    await win.locator('.block.quote').waitFor({ timeout: 5000 });
+    const b = await blocksOf('Smoke page');
+    expect(b.some((x) => x.html.includes('Secret added after locking')), 'edit made while unlocked was lost');
+  });
+
   await step('trash and restore', async () => {
     await win.evaluate(() => {
       const p = Object.values(window.__gn.db.pages).find((x) => x.title === 'Smoke page');
@@ -152,6 +189,13 @@ const blocksOf = (title) => win.evaluate((t) => {
     expect(Object.values(saved.pages).some((p) => p.title === 'Smoke page'), 'page missing from notes.json');
     await launch();
     expect(await win.locator('.tree-row', { hasText: 'Smoke page' }).count() === 1, 'page missing after restart');
+    // The page is locked again after a restart, and the password still opens the latest version.
+    await win.locator('.tree-row', { hasText: 'Smoke page' }).click();
+    await win.locator('.lock-card input').fill('correct horse');
+    await win.keyboard.press('Enter');
+    await win.locator('.block.quote').waitFor({ timeout: 5000 });
+    const b = await blocksOf('Smoke page');
+    expect(b.some((x) => x.html.includes('Secret added after locking')), 'latest edits missing after restart');
   });
 
   await step('no errors in the app console', async () => {

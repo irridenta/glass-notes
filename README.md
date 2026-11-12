@@ -8,6 +8,12 @@ A calm, dark-glass notes app for Windows. Pages, sub-pages, to-dos, headings, qu
 
 The app isn't code-signed, so Windows SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**.
 
+## Password-protected notes
+Open a page → **⋯** → **Add password…**. The page's content is encrypted (AES-256, key derived from your password with PBKDF2, 600,000 rounds); its title, icon and cover stay visible so you can find it. Protected pages:
+- lock again with the 🔒 button or `Ctrl L`, after 10 minutes without activity (change in Settings), and whenever you close the app;
+- are left out of search (except their titles), home-page previews, Markdown export and the AI weekly review;
+- **can't be recovered if you forget the password.** An optional hint is shown on the lock screen.
+
 ## Sharing a note
 Open a page → **Share** (top right):
 - **Web page** — one `.html` file with fonts and images inside. Anyone can open it in a browser.
@@ -23,6 +29,7 @@ Open a page → **Share** (top right):
 | `Ctrl N` | New page |
 | `Ctrl \` | Show / hide sidebar |
 | `Ctrl Shift E` | Share / export |
+| `Ctrl L` | Lock a password-protected page |
 | `/` | Insert a block |
 | `Ctrl B / I / U`, `Ctrl E`, `Ctrl Shift H` | Bold, italic, underline, inline code, highlight |
 | `Tab` / `Shift Tab` | Indent / outdent list items |

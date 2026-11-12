@@ -145,6 +145,10 @@ def page_to_markdown(page: dict, *, front_matter: bool = True) -> str:
         lines += ["---", ""]
     lines.append(f"# {title_of(page)}")
     lines.append("")
+    if page.get("locked"):
+        # Password-protected: the content is encrypted and can only be read in the app.
+        lines.append("> 🔒 This page is password-protected in Glass Notes. Its content isn't exported.")
+        return "\n".join(lines).rstrip() + "\n"
     number = {}
     prev_type = None
     for b in page.get("blocks", []):

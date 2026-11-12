@@ -12,6 +12,18 @@
   let saveTimer = null;
   let dirty = false;
 
+  /* Password-protected pages: decrypted content lives only in memory, and only while unlocked. */
+  const vault = new Map();         // pageId -> CryptoKey, for unlocked protected pages
+  const sealPending = new Set();   // unlocked pages edited since they were last encrypted
+  let purgeBackup = false;         // overwrite the rolling backup (it may hold old plain text)
+  let lastActivity = Date.now();
+  const isLocked = (p) => !!(p && p.locked);
+  const isUnlocked = (p) => isLocked(p) && vault.has(p.id);
+  const hidden = (p) => isLocked(p) && !vault.has(p.id);
+  // Never write a protected page's plain blocks to disk: only its encrypted copy.
+  const stripPlain = function (k, v) { return k === 'blocks' && this && this.locked ? [] : v; };
+  const serialize = () => JSON.stringify(db, stripPlain);
+
   /* ---------- data ---------- */
   const pages = () => db.pages;
   const get = (id) => db.pages[id];
@@ -21,8 +33,8 @@
   const descendants = (id) => { const out = []; const walk = (x) => (get(x)?.children || []).forEach((c) => { out.push(c); walk(c); }); walk(id); return out; };
   const titleOf = (p) => p.title || 'Untitled';
   const plain = (html) => { const d = document.createElement('div'); d.innerHTML = html || ''; return d.textContent; };
-  const snippet = (p) => (p.blocks || []).filter((b) => b.type !== 'code').map((b) => plain(b.html)).filter(Boolean).join(' · ').slice(0, 160);
-  const words = (p) => (p.blocks || []).map((b) => plain(b.html)).join(' ').split(/\s+/).filter(Boolean).length;
+  const snippet = (p) => isLocked(p) ? '🔒 Password protected' : (p.blocks || []).filter((b) => b.type !== 'code').map((b) => plain(b.html)).filter(Boolean).join(' · ').slice(0, 160);
+  const words = (p) => hidden(p) ? 0 : (p.blocks || []).map((b) => plain(b.html)).join(' ').split(/\s+/).filter(Boolean).length;
 
   function ago(t) {
     const s = (Date.now() - t) / 1000;
@@ -63,7 +75,10 @@
       if (!dirty) return;
       dirty = false;
       try {
-        await window.desk.save(JSON.stringify(db));
+        await sealAll();
+        const purge = purgeBackup;
+        await window.desk.save(serialize(), { purgeBackup: purge });
+        if (purge) purgeBackup = false;
         $('saveState').textContent = 'Saved';
       } catch (err) {
         $('saveState').textContent = 'Not saved';
@@ -76,7 +91,27 @@
   async function flush() { if (dirty) { clearTimeout(saveTimer); dirty = true; await save(true); } }
   window.desk.onFlush && window.desk.onFlush(async () => { await flush(); window.desk.flushed(); });
 
-  function touch(p) { p.updatedAt = Date.now(); save(); }
+  function touch(p) {
+    p.updatedAt = Date.now();
+    if (isUnlocked(p)) sealPending.add(p.id);
+    save();
+  }
+
+  // Encrypt the latest content of every unlocked page that changed.
+  async function sealAll() {
+    const ids = [...sealPending];
+    sealPending.clear();
+    for (const id of ids) {
+      const p = get(id);
+      if (!p || !p.locked || !vault.has(id)) continue;
+      try {
+        Object.assign(p.locked, await GNLock.seal(vault.get(id), id, p.blocks));
+      } catch (err) {
+        sealPending.add(id);
+        throw err;
+      }
+    }
+  }
 
   /* ---------- page operations ---------- */
   function createPage({ parentId = null, template = 'blank', open = true, index } = {}) {
@@ -134,8 +169,9 @@
     renderSidebar();
   }
 
-  function duplicatePage(id) {
+  async function duplicatePage(id) {
     const src = get(id);
+    if (hidden(src)) { UI.toast('Unlock this page to duplicate it'); return; }
     const copy = JSON.parse(JSON.stringify(src));
     copy.id = GN.uid();
     copy.title = (src.title || 'Untitled') + ' (copy)';
@@ -143,6 +179,11 @@
     copy.favorite = false;
     copy.createdAt = copy.updatedAt = Date.now();
     copy.blocks = (copy.blocks || []).map((b) => ({ ...b, id: GN.uid() }));
+    if (isLocked(src)) {
+      // Same password; the encrypted body is tied to the page id, so seal it again for the copy.
+      Object.assign(copy.locked, await GNLock.seal(vault.get(src.id), copy.id, copy.blocks));
+      copy.blocks = [];
+    }
     db.pages[copy.id] = copy;
     const list = childrenOf(src.parentId);
     list.splice(list.indexOf(id) + 1, 0, copy.id);
@@ -212,6 +253,7 @@
     const row = h('div', { class: 'tree-row' + (active ? ' active' : ''), style: { paddingLeft: 4 + depth * 14 + 'px' }, draggable: 'true', 'data-id': p.id },
       twisty, pageIcon(p),
       h('span', { class: 'tree-title' + (p.title ? '' : ' untitled'), text: titleOf(p) }),
+      isLocked(p) ? h('span', { class: 'tree-lock' + (vault.has(p.id) ? ' open' : ''), title: vault.has(p.id) ? 'Unlocked' : 'Password protected', html: vault.has(p.id) ? ICONS.unlock : ICONS.lock }) : null,
       h('span', { class: 'row-tools' },
         h('button', { title: 'More', html: ICONS.more, onclick: (e) => { e.stopPropagation(); pageMenu(p, e.currentTarget.getBoundingClientRect()); } }),
         h('button', { title: 'Add a page inside', html: ICONS.plus, onclick: (e) => { e.stopPropagation(); createPage({ parentId: p.id }); } })));
@@ -278,9 +320,11 @@
 
   function updateTopbar() {
     const isPage = view.name === 'page';
-    $('shareBtn').style.display = isPage ? '' : 'none';
+    const cur = isPage ? get(view.id) : null;
+    $('shareBtn').style.display = isPage && !hidden(cur) ? '' : 'none';
     $('favBtn').style.display = isPage ? '' : 'none';
     $('moreBtn').style.display = isPage ? '' : 'none';
+    $('lockBtn').style.display = isUnlocked(cur) ? '' : 'none';
     if (isPage) {
       const p = get(view.id);
       $('favBtn').classList.toggle('on', !!p.favorite);
@@ -327,7 +371,7 @@
       h('div', { class: 'card-icon', text: p.icon || '📄' }),
       h('div', { class: 'card-body' },
         h('div', { class: 'card-title', text: titleOf(p) }),
-        h('div', { class: 'card-snip', text: snippet(p) || 'Empty page' }),
+        h('div', { class: 'card-snip' + (isLocked(p) ? ' locked' : ''), text: snippet(p) || 'Empty page' }),
         h('div', { class: 'card-time', text: 'Edited ' + ago(p.updatedAt) })));
   }
 
@@ -350,6 +394,7 @@
     db.recent = [id, ...db.recent.filter((x) => x !== id)].slice(0, 16);
     save();
     document.title = titleOf(p) + ' — Glass Notes';
+    if (hidden(p)) return renderLockScreen(p);
 
     const v = h('div', { class: 'page-view' });
     const applyClasses = () => {
@@ -402,7 +447,7 @@
     title.addEventListener('paste', (e) => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain').replace(/\s*\n\s*/g, ' ')); });
 
     const meta = h('div', { class: 'page-meta' });
-    const drawMeta = () => { meta.textContent = `Edited ${ago(p.updatedAt)} · ${words(p)} words`; };
+    const drawMeta = () => { meta.textContent = `Edited ${ago(p.updatedAt)} · ${words(p)} words${isLocked(p) ? ' · 🔓 Unlocked' : ''}`; };
     drawMeta();
 
     const inner = h('div', { class: 'page-inner' });
@@ -439,6 +484,110 @@
     }
 
     if (focusTitle) setTimeout(() => title.focus());
+  }
+
+  function renderLockScreen(p) {
+    const v = h('div', { class: 'page-view' + (p.cover ? ' has-cover' : '') });
+    if (p.cover && GN.COVERS[p.cover]) v.append(h('div', { class: 'cover', style: { background: GN.COVERS[p.cover].css } }));
+    const pw = h('input', { class: 'field', type: 'password', placeholder: 'Password', autocomplete: 'current-password' });
+    const err = h('div', { class: 'lock-error' });
+    const btn = h('button', { class: 'primary-btn', onclick: () => submit() }, 'Unlock');
+    const card = h('div', { class: 'lock-card' },
+      h('div', { class: 'lock-badge', html: ICONS.lock }),
+      h('h2', { text: 'This page is locked' }),
+      h('p', { text: 'Enter the password to read and edit it.' }),
+      h('div', { class: 'lock-row' }, pw, btn), err,
+      p.locked.hint ? h('button', { class: 'lock-hint', onclick: (e) => { e.currentTarget.textContent = 'Hint: ' + p.locked.hint; } }, 'Show hint') : null);
+    const submit = async () => {
+      if (!pw.value) return pw.focus();
+      btn.disabled = true; btn.textContent = 'Unlocking…';
+      const r = await GNLock.unlock(p.id, p.locked, pw.value);
+      if (!r) {
+        btn.disabled = false; btn.textContent = 'Unlock';
+        err.textContent = 'Wrong password. Try again.';
+        card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake');
+        pw.select();
+        return;
+      }
+      vault.set(p.id, r.key);
+      p.blocks = r.blocks;
+      lastActivity = Date.now();
+      openPage(p.id);
+    };
+    pw.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+    v.append(h('div', { class: 'page-inner' },
+      h('div', { class: 'page-head' },
+        p.icon ? h('div', { class: 'page-icon', style: { cursor: 'default' }, text: p.icon }) : null,
+        h('h1', { class: 'page-title', text: titleOf(p) }),
+        h('div', { class: 'page-meta', text: 'Password protected' })),
+      card));
+    $('view').append(v);
+    setTimeout(() => pw.focus());
+  }
+
+  async function addPassword(p) {
+    const r = await GNLock.askNewPassword({
+      title: 'Lock this page',
+      text: 'Its content is encrypted and needs this password to open. The title stays visible. If you forget the password, the page can’t be recovered.',
+      ok: 'Lock page',
+    });
+    if (!r) return;
+    const { key, locked } = await GNLock.protect(p.id, p.blocks, r.password, r.hint);
+    p.locked = locked;
+    vault.set(p.id, key);
+    purgeBackup = true;
+    touch(p);
+    await flush();
+    updateTopbar(); renderSidebar(); openPage(p.id);
+    UI.toast('Password added. The page stays open until you lock it.', { action: 'Lock now', onAction: () => lockPage(p.id) });
+  }
+
+  async function lockPage(id, quiet = false) {
+    const p = get(id);
+    if (!isUnlocked(p)) return;
+    await sealAll();
+    vault.delete(id);
+    sealPending.delete(id);
+    p.blocks = [];
+    save(true);
+    if (view.name === 'page' && view.id === id) openPage(id);
+    else renderSidebar();
+    if (!quiet) UI.toast(`Locked “${titleOf(p)}”`);
+  }
+
+  async function lockAll() {
+    const ids = [...vault.keys()];
+    for (const id of ids) await lockPage(id, true);
+    return ids.length;
+  }
+
+  const checkPassword = (p) => async (pw) => !!(await GNLock.unlock(p.id, p.locked, pw));
+
+  async function removePassword(p) {
+    await sealAll();
+    const ok = await GNLock.askPassword({ title: 'Remove password', text: `“${titleOf(p)}” will no longer be encrypted. Enter the current password to confirm.`, ok: 'Remove password', hint: p.locked.hint, check: checkPassword(p) });
+    if (!ok) return;
+    delete p.locked;
+    vault.delete(p.id);
+    sealPending.delete(p.id);
+    touch(p);
+    updateTopbar(); renderSidebar(); openPage(p.id);
+    UI.toast('Password removed');
+  }
+
+  async function changePassword(p) {
+    await sealAll();
+    const ok = await GNLock.askPassword({ title: 'Change password', text: 'Enter the current password first.', ok: 'Continue', hint: p.locked.hint, check: checkPassword(p) });
+    if (!ok) return;
+    const r = await GNLock.askNewPassword({ title: 'New password', text: 'If you forget it, the page can’t be recovered.', ok: 'Save password' });
+    if (!r) return;
+    const { key, locked } = await GNLock.protect(p.id, p.blocks, r.password, r.hint);
+    p.locked = locked;
+    vault.set(p.id, key);
+    purgeBackup = true;
+    touch(p);
+    await flush();
+    UI.toast('Password changed');
   }
 
   function applyTemplate(p, key) {
@@ -494,6 +643,9 @@
         h('div', {}, h('div', { class: 't', text: 'Background motion' }), h('div', { class: 's', text: 'Slowly drifting colour behind the glass. Turn off to save battery.' })),
         seg([['on', 'On'], ['off', 'Off']], db.settings.motion ? 'on' : 'off', (k) => { db.settings.motion = k === 'on'; applyMotion(); save(); })),
       h('div', { class: 'setting' },
+        h('div', {}, h('div', { class: 't', text: 'Lock protected pages after' }), h('div', { class: 's', text: 'Unlocked pages lock again when you haven’t used the app for this long, and always when you close it.' })),
+        seg([['5', '5 min'], ['10', '10 min'], ['30', '30 min'], ['0', 'Never']], String(db.settings.autoLock ?? 10), (k) => { db.settings.autoLock = Number(k); save(); })),
+      h('div', { class: 'setting' },
         h('div', { style: { minWidth: 0 } }, h('div', { class: 't', text: 'Where your notes are stored' }), h('div', { class: 's', text: loc })),
         h('button', { class: 'ghost-btn', onclick: () => window.desk.revealData() }, h('span', { html: ICONS.folder }), 'Show')),
       h('div', { class: 'setting' },
@@ -509,6 +661,7 @@
   function shareMenu() {
     if (view.name !== 'page') return;
     const p = get(view.id);
+    if (hidden(p)) { UI.toast('Unlock this page to export it'); return; }
     const rect = $('shareBtn').getBoundingClientRect();
     const head = h('div', { class: 'share-head' }, h('div', { class: 't', text: 'Share this page' }),
       h('div', { class: 's', text: 'Save a copy you can send to anyone. Your original stays private on this computer.' }));
@@ -535,6 +688,7 @@
     const p = get(view.id);
     const set = (k, v) => () => { p[k] = v; touch(p); openPage(p.id); };
     UI.menu([
+      { section: 'Privacy' },
       { section: 'Style' },
       { label: 'Sans', icon: '<span style="font-family:var(--sans);font-weight:600">Ag</span>', on: !p.font || p.font === 'sans', action: set('font', 'sans') },
       { label: 'Serif', icon: '<span style="font-family:var(--serif);font-size:17px">Ag</span>', on: p.font === 'serif', action: set('font', 'serif') },
@@ -543,10 +697,16 @@
       { label: 'Small text', icon: 'font', on: !!p.small, action: set('small', !p.small) },
       { label: 'Full width', icon: 'width', on: !!p.wide, action: set('wide', !p.wide) },
       'sep',
+      ...(!isLocked(p) ? [{ label: 'Add password…', icon: 'lock', action: () => addPassword(p) }]
+        : hidden(p) ? []
+        : [{ label: 'Lock now', icon: 'lock', hint: 'Ctrl L', action: () => lockPage(p.id) },
+           { label: 'Change password…', icon: 'edit', action: () => changePassword(p) },
+           { label: 'Remove password…', icon: 'unlock', action: () => removePassword(p) }]),
+      'sep',
       { label: p.favorite ? 'Remove from Favorites' : 'Add to Favorites', icon: 'star', action: () => toggleFavorite(p.id) },
       { label: 'Duplicate page', icon: 'copy', action: () => duplicatePage(p.id) },
       { label: 'Move to Trash', icon: 'trash', danger: true, action: () => trashPage(p.id) },
-      { section: `${words(p)} words · created ${new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` },
+      { section: `${hidden(p) ? 'Locked' : words(p) + ' words'} · created ${new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` },
     ], $('moreBtn').getBoundingClientRect(), { align: 'end', compact: true });
   }
 
@@ -568,6 +728,7 @@
       { label: 'Toggle sidebar', icon: 'side', hint: 'Ctrl \\', run: toggleSidebar },
       { label: 'Export page as web page', icon: 'globe', when: () => view.name === 'page', run: () => doExport(get(view.id), 'html') },
       { label: 'Export page as PDF', icon: 'pdf', when: () => view.name === 'page', run: () => doExport(get(view.id), 'pdf') },
+      { label: 'Lock all unlocked pages', icon: 'lock', when: () => vault.size > 0, run: async () => { const n = await lockAll(); UI.toast(`Locked ${n} page${n > 1 ? 's' : ''}`); } },
       { label: 'Open trash', icon: 'trash', run: showTrash },
       { label: 'Settings', icon: 'gear', run: showSettings },
     ].filter((c) => !c.when || c.when());
@@ -584,7 +745,7 @@
           const t = titleOf(p).toLowerCase();
           let score = t === q ? 100 : t.startsWith(q) ? 60 : t.includes(q) ? 40 : 0;
           let hit = '';
-          if (!score) {
+          if (!score && !isLocked(p)) { // protected pages: titles only, never their content
             const body = (p.blocks || []).map((b) => plain(b.html)).join(' ');
             const at = body.toLowerCase().indexOf(q);
             if (at >= 0) { score = 10; hit = (at > 30 ? '…' : '') + body.slice(Math.max(0, at - 30), at + 60); }
@@ -651,6 +812,7 @@
     else if (k === '\\') { e.preventDefault(); toggleSidebar(); }
     else if (k === 'e' && e.shiftKey) { e.preventDefault(); shareMenu(); }
     else if (k === 's') { e.preventDefault(); flush(); UI.toast('All changes are saved automatically'); }
+    else if (k === 'l' && !e.shiftKey && view.name === 'page' && isUnlocked(get(view.id))) { e.preventDefault(); lockPage(view.id); }
   });
 
   // Never let a dropped file navigate the window away.
@@ -669,10 +831,20 @@
   $('shareBtn').onclick = shareMenu;
   $('favBtn').onclick = () => toggleFavorite(view.id);
   $('moreBtn').onclick = moreMenu;
+  $('lockBtn').onclick = () => lockPage(view.id);
+
+  // Lock protected pages again after a period without activity.
+  ['keydown', 'mousedown', 'wheel'].forEach((ev) => window.addEventListener(ev, () => { lastActivity = Date.now(); }, true));
+  setInterval(async () => {
+    const minutes = db?.settings?.autoLock ?? 10;
+    if (!vault.size || !minutes || Date.now() - lastActivity < minutes * 60000) return;
+    const n = await lockAll();
+    if (n) UI.toast(`Locked ${n} page${n > 1 ? 's' : ''} after ${minutes} minutes without activity`);
+  }, 20000);
 
   // Keep "Edited 3m ago" style labels fresh.
   setInterval(() => {
-    if (view.name === 'page') { const m = document.querySelector('.page-meta'); const p = get(view.id); if (m && p) m.textContent = `Edited ${ago(p.updatedAt)} · ${words(p)} words`; }
+    if (view.name === 'page') { const m = document.querySelector('.page-meta'); const p = get(view.id); if (m && p && !hidden(p)) m.textContent = `Edited ${ago(p.updatedAt)} · ${words(p)} words${isLocked(p) ? ' · 🔓 Unlocked' : ''}`; }
   }, 30000);
 
   (async () => {
@@ -685,5 +857,5 @@
     $('saveState').textContent = '';
   })();
 
-  window.__gn = { get db() { return db; }, openPage, showHome, createPage, palette, showTrash, showSettings, showTemplates, shareMenu, doExport };
+  window.__gn = { get db() { return db; }, serialize, lockPage, addPassword, openPage, showHome, createPage, palette, showTrash, showSettings, showTemplates, shareMenu, doExport };
 })();

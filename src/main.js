@@ -86,13 +86,17 @@ ipcMain.handle('data:load', () => {
 });
 
 let lastBackup = 0;
-ipcMain.handle('data:save', (_e, text) => {
+ipcMain.handle('data:save', (_e, text, opts = {}) => {
   fs.mkdirSync(dataDir(), { recursive: true });
   // Keep a rolling backup of the previous good version, at most every 5 minutes.
-  if (Date.now() - lastBackup > 5 * 60 * 1000 && fs.existsSync(dataFile())) {
+  if (!opts.purgeBackup && Date.now() - lastBackup > 5 * 60 * 1000 && fs.existsSync(dataFile())) {
     try { fs.copyFileSync(dataFile(), backupFile()); lastBackup = Date.now(); } catch {}
   }
   writeAtomic(dataFile(), text);
+  // A page just got a password: the old backup may still hold its plain text, so replace it.
+  if (opts.purgeBackup) {
+    try { fs.copyFileSync(dataFile(), backupFile()); lastBackup = Date.now(); } catch {}
+  }
   return true;
 });
 

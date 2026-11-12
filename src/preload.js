@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('desk', {
   platform: process.platform,
   load: () => ipcRenderer.invoke('data:load'),
-  save: (text) => ipcRenderer.invoke('data:save', text),
+  save: (text, opts) => ipcRenderer.invoke('data:save', text, opts),
   dataLocation: () => ipcRenderer.invoke('data:location'),
   revealData: () => ipcRenderer.invoke('data:reveal'),
   exportHtml: (title, html) => ipcRenderer.invoke('export:html', { title, html }),

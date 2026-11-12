@@ -45,7 +45,9 @@ Do not invent tasks that are not in the notes. Keep the whole review under 350 w
 
 
 def recent_pages(db: dict, since_ms: int) -> list[dict]:
-    pages = [p for p in db["pages"].values() if is_alive(db, p) and p.get("updatedAt", 0) >= since_ms]
+    # Password-protected pages are encrypted, so they're never read or sent anywhere.
+    pages = [p for p in db["pages"].values()
+             if is_alive(db, p) and not p.get("locked") and p.get("updatedAt", 0) >= since_ms]
     return sorted(pages, key=lambda p: p.get("updatedAt", 0), reverse=True)
 
 

@@ -127,6 +127,7 @@
         B('bullet', '<code>Ctrl N</code> — new page'),
         B('bullet', '<code>Ctrl \\</code> — show or hide the sidebar'),
         B('bullet', '<code>Ctrl Shift E</code> — export the page'),
+        B('bullet', '<code>Ctrl L</code> — lock a password-protected page again'),
         B('h2', 'While writing'),
         B('bullet', '<code>/</code> — insert a block (heading, to-do, quote, code…)'),
         B('bullet', '<code>Ctrl B</code>, <code>Ctrl I</code>, <code>Ctrl U</code> — bold, italic, underline'),
